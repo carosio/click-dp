@@ -1,0 +1,15 @@
+{application, scg_click_dp,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  sasl,
+		  lager
+                 ]},
+  {mod, { scg_click_dp_app, []}},
+  {env, [
+	]}
+ ]}.
