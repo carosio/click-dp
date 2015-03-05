@@ -103,7 +103,8 @@ call(Args, Timeout) ->
 %% @private
 init([]) ->
     ets:new(?TABLE, [named_table, protected, set, {keypos, 1}]),
-    State = connect(#state{state = disconnected, tref = undefined, timeout = 10}),
+    self() ! reconnect,
+    State = #state{state = disconnected, tref = undefined, timeout = 10},
     {ok, State}.
 
 %% @private
@@ -145,7 +146,7 @@ handle_info({nodedown, Node}, State0) ->
     {noreply, State2};
 
 handle_info(reconnect, State0) ->
-    lager:warning("trying to reconnect"),
+    lager:warning("trying to (re)connect"),
     State1 = connect(State0#state{tref = undefined}),
     {noreply, State1};
 
@@ -170,7 +171,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 get_node() ->
-    DP = application:get_env(scg, ?CNODE_CONF_KEY, ?CNODE_NAME),
+    DP = application:get_env(scg_click_dp, ?CNODE_CONF_KEY, ?CNODE_NAME),
     list_to_atom(DP ++ "@" ++ net_adm:localhost()).
 
 start_nodedown_timeout(State = #state{tref = undefined, timeout = Timeout}) ->
@@ -190,7 +191,7 @@ connect(State) ->
 	    lager:warning("Node ~p is up", [Node]),
 	    erlang:monitor_node(Node, true),
 	    init_node(State),
-	    bind(self()),
+	    internal_bind(self()),
 	    State#state{state = connected, timeout = 10};
 	pang ->
 	    lager:warning("Node ~p is down", [Node]),
@@ -200,10 +201,16 @@ connect(State) ->
 handle_nodedown(State) ->
     State#state{state = disconnected}.
 
-init_node(_State) ->
+internal_call(Request, Timeout) ->
     Node = get_node(),
+    catch(gen_server:call({?CNODE_SERVER, Node}, Request, Timeout)).
+
+init_node(_State) ->
     Data = ets:tab2list(?TABLE),
-    catch(gen_server:call({?CNODE_SERVER, Node}, {init, Data}, infinity)).
+    internal_call({init, Data}, infinity).
+
+internal_bind(Pid) ->
+    internal_call({bind, Pid}, infinity).
 
 async_node_call(Request, Timeout, From) ->
     proc_lib:spawn_link(fun() -> node_call(Request, Timeout, From) end).

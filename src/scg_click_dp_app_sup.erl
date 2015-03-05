@@ -27,5 +27,6 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    ClientSpecs =  [?CHILD(scg_click_dp, worker, [])],
+    ClientSpecs =  [?CHILD(click_dp_mock, worker, []),
+		    ?CHILD(click_dp, worker, [])],
     {ok, {{one_for_all, 5, 10}, ClientSpecs}}.
