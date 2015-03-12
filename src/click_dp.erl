@@ -15,7 +15,7 @@
 -behavior(gen_server).
 
 %% API
--export([start_link/0, call/1, call/2]).
+-export([start_link/1, call/1, call/2]).
 
 %% generic C-Node wrapper
 -export([bind/1, insert/2, delete/1]).
@@ -27,7 +27,7 @@
 %% dev API
 -export([run/2]).
 
--record(state, {state, tref, timeout}).
+-record(state, {groups, state, tref, timeout}).
 
 -define(SERVER, ?MODULE).
 -define(TABLE, ?MODULE).
@@ -57,8 +57,8 @@
 %%===================================================================
 %% API
 %%===================================================================
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Groups) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Groups], []).
 
 %%===================================================================
 %% C-Node API Wrapper
@@ -101,29 +101,29 @@ call(Args, Timeout) ->
 %% gen_server callbacks
 %%===================================================================
 %% @private
-init([]) ->
+init([Groups]) ->
     ets:new(?TABLE, [named_table, protected, set, {keypos, 1}]),
     self() ! reconnect,
-    State = #state{state = disconnected, tref = undefined, timeout = 10},
+    State = #state{groups = Groups, state = disconnected, tref = undefined, timeout = 10},
     {ok, State}.
 
 %% @private
-handle_call({call, Request, _Timeout}, _From, State = #state{state = disconnected}) ->
-    lager:warning("got call ~p without active data path", [Request]),
-    {reply, {error, not_connected}, State};
-
 handle_call({call, Request = {insert, Key, Value}, Timeout}, From, State) ->
     ets:insert(?TABLE, {Key, Value}),
-    async_node_call(Request, Timeout, From),
+    async_node_call(Request, Timeout, From, State),
     {noreply, State};
 
 handle_call({call, Request = {delete, Key}, Timeout}, From, State) ->
     ets:delete(?TABLE, Key),
-    async_node_call(Request, Timeout, From),
+    async_node_call(Request, Timeout, From, State),
     {noreply, State};
 
+handle_call({call, Request, _Timeout}, _From, State = #state{state = disconnected}) ->
+    lager:warning("got call ~p without active data path", [Request]),
+    {reply, {error, not_connected}, State};
+
 handle_call({call, Request, Timeout}, From, State) ->
-    async_node_call(Request, Timeout, From),
+    async_node_call(Request, Timeout, From, State),
     {noreply, State};
 
 handle_call(_Request, _From, State) ->
@@ -190,8 +190,8 @@ connect(State) ->
 	pong ->
 	    lager:warning("Node ~p is up", [Node]),
 	    erlang:monitor_node(Node, true),
-	    init_node(State),
 	    internal_bind(self()),
+	    init_node(State),
 	    State#state{state = connected, timeout = 10};
 	pang ->
 	    lager:warning("Node ~p is down", [Node]),
@@ -205,14 +205,17 @@ internal_call(Request, Timeout) ->
     Node = get_node(),
     catch(gen_server:call({?CNODE_SERVER, Node}, Request, Timeout)).
 
-init_node(_State) ->
+init_node(#state{groups = Groups}) ->
     Data = ets:tab2list(?TABLE),
-    internal_call({init, Data}, infinity).
+    internal_call({init, Groups, Data}, infinity).
 
 internal_bind(Pid) ->
     internal_call({bind, Pid}, infinity).
 
-async_node_call(Request, Timeout, From) ->
+async_node_call(Request, _Timeout, From, #state{state = disconnected}) ->
+    lager:warning("got call ~p without active data path", [Request]),
+    gen_server:reply(From, {error, not_connected});
+async_node_call(Request, Timeout, From, _State) ->
     proc_lib:spawn_link(fun() -> node_call(Request, Timeout, From) end).
 
 node_call(Request, Timeout, From) ->
@@ -261,7 +264,7 @@ nat2dp(NAT) ->
     NAT.
 
 rules2dp(Rules) ->
-    lists:foreach(fun rule2dp/1, Rules).
+    lists:map(fun rule2dp/1, Rules).
 
 rule2dp({Src, Dst, Verdict}) ->
     {group2dp(Src), group2dp(Dst), verdict2dp(Verdict)};

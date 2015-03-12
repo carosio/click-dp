@@ -5,7 +5,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -19,14 +19,14 @@
 %% API functions
 %% ===================================================================
 
-start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+start_link(Groups) ->
+    supervisor:start_link({local, ?SERVER}, ?MODULE, [Groups]).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
+init([Groups]) ->
     ClientSpecs =  [?CHILD(click_dp_mock, worker, []),
-		    ?CHILD(click_dp, worker, [])],
+		    ?CHILD(click_dp, worker, [Groups])],
     {ok, {{one_for_all, 5, 10}, ClientSpecs}}.
