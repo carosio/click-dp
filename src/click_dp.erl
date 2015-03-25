@@ -253,9 +253,7 @@ value2dp({Group, NAT, Rules}) ->
 value2dp(Value) ->
     erlang:error(badarg, [Value]).
 
-group2dp(Group) when is_list(Group) ->
-    list_to_binary(Group);
-group2dp(Group) when is_binary(Group) ->
+group2dp(Group) when is_integer(Group) ->
     Group;
 group2dp(Group) ->
     erlang:error(badarg, [Group]).

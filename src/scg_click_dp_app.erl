@@ -12,7 +12,12 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    Groups = [{{{10,0,1,0},24},"Class 1"},{{{10,0,2,0},24},"Class 2"}],
+    DEFAULT = 16#55AA,
+    Class1 = 1,
+    Class2 = 2,
+    Class3 = 3,
+
+    Groups = [{{{10,0,1,0},24},Class1},{{{10,0,2,0},24},Class2}],
 
     {ok, Pid} = scg_click_dp_app_sup:start_link(Groups),
 
@@ -20,7 +25,7 @@ start(_StartType, _StartArgs) ->
     Key1 = {inet,<<172,20,48,20>>},
     Key2 = {inet,<<172,20,48,21>>},
     Key3 = {inet,<<172,20,48,22>>},
-    Group = "DEFAULT",
+    Group = DEFAULT,
     NAT = [
 	   {{1,1,1,1}, 'SymetricAddressKeyed', {2,2,2,1}},
 	   {{1,1,1,2}, 'AddressKeyed', {2,2,2,2}},
@@ -30,9 +35,9 @@ start(_StartType, _StartArgs) ->
 	   {{1,1,1,6}, 'Masquerade', undefined}
 	  ],
     Rules = [
-	     {<<"Class 1">>,<<"Class 2">>,accept},
-	     {<<"Class 2">>,<<"Class 1">>,drop},
-	     {<<"Class 1">>,<<"Class 3">>,deny}
+	     {Class1,Class2,accept},
+	     {Class2,Class1,drop},
+	     {Class1,Class3,deny}
 	    ],
     click_dp:insert(Key0, {Group, NAT, Rules}),
     click_dp:insert(Key1, {Group, [],  Rules}),
