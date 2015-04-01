@@ -154,6 +154,10 @@ handle_info(Info, State = #state{state = disconnected}) ->
     lager:warning("got info ~p without active data path", [Info]),
     {noreply, State};
 
+handle_info({packet_in, Packet}, State) ->
+    lager:info("Packet-In:~n~s~n", [flower_tools:hexdump(Packet)]),
+    {noreply, State};
+
 handle_info(Info, State) ->
     lager:warning("Unhandled info message: ~p", [Info]),
     {noreply, State}.
