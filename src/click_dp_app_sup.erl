@@ -1,6 +1,6 @@
-%% Copyright 2015, Travelping GmbH <info@travelping.com>
+%% Copyright 2015, Travelping GmbH <copyright@travelping.com>
 
--module(scg_click_dp_app_sup).
+-module(click_dp_app_sup).
 
 -behaviour(supervisor).
 

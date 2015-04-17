@@ -175,7 +175,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 get_node() ->
-    DP = application:get_env(scg_click_dp, ?CNODE_CONF_KEY, ?CNODE_NAME),
+    DP = application:get_env(click_dp, ?CNODE_CONF_KEY, ?CNODE_NAME),
     list_to_atom(DP ++ "@" ++ net_adm:localhost()).
 
 start_nodedown_timeout(State = #state{tref = undefined, timeout = Timeout}) ->

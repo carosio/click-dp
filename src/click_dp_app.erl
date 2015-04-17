@@ -1,6 +1,6 @@
-%% Copyright 2015, Travelping GmbH <info@travelping.com>
+%% Copyright 2015, Travelping GmbH <copyright@travelping.com>
 
--module(scg_click_dp_app).
+-module(click_dp_app).
 
 -behaviour(application).
 
@@ -19,7 +19,7 @@ start(_StartType, _StartArgs) ->
 
     Groups = [{{{10,0,1,0},24},Class1},{{{10,0,2,0},24},Class2},{{{10,0,3,0},24},Class3},{{{0,0,0,0},0},DEFAULT}],
 
-    {ok, Pid} = scg_click_dp_app_sup:start_link(Groups),
+    {ok, Pid} = click_dp_app_sup:start_link(Groups),
 
     Key0 = {inet,<<172,20,48,19>>},
     Key1 = {inet,<<172,20,48,20>>},

@@ -1,4 +1,4 @@
-{application, scg_click_dp,
+{application, click_dp,
  [
   {description, ""},
   {vsn, "1"},
@@ -9,7 +9,7 @@
                   sasl,
 		  lager
                  ]},
-  {mod, { scg_click_dp_app, []}},
+  {mod, { click_dp_app, []}},
   {env, [
 	]}
  ]}.
